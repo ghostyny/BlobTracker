@@ -1,0 +1,40 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -project BlobTracker.xcodeproj \
+            -scheme BlobTracker \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=«» \
+            build
+
+      - name: Package ipa
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/BlobTracker.app Payload/
+          zip -r BlobTracker.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlobTracker-ipa
+          path: BlobTracker.ipa
